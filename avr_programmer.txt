@@ -1,0 +1,3 @@
+sudo avrdude -p m644 -c avrispmkII -P usb
+sudo screen /dev/ttyUSB0 9600
+
