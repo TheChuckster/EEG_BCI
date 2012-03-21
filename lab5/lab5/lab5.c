@@ -13,8 +13,9 @@ FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 // timeout values for each task
 #define t1 100
+#define t2 10
 
-volatile unsigned char time1; // timeout counter
+volatile unsigned char time1=0, time2=0; // timeout counter
 unsigned char led; // light states
 
 volatile int Ain, AinLow; // raw A to D number
@@ -32,6 +33,8 @@ ISR (TIMER0_COMPA_vect)
 		led ^= 1;
 		PORTD = (led << PORTD2) | (led << PORTD3);
 	}
+	
+	if (time2 > 0) --time2;
 }
 
 void pwm_init()
@@ -66,13 +69,14 @@ int main()
   	OCR0A = 249; // set the compare register to 250 time ticks
   	TCCR0B = 3; // set prescalar to divide by 64
   	TCCR0A = 1 << WGM01; // turn on clear-on-match
-  	
+  	 	
   	// set up timer for PWM
   	pwm_init();
 
   	led = 0x00; // init the LED status
 
   	time1 = t1; // init the task timer
+  	time2 = t2;
    
 	// init the UART -- uart_init() is in uart.c
 	uart_init();
@@ -83,15 +87,20 @@ int main()
 
 	// measure and display loop
 	while (1)
-	{    
-		// start another conversion
-		ADCSRA |= (1<<ADSC);
+	{
+		if (time2 == 0)
+		{
+			time2 = t2;	
+			fprintf(stdout, "%d\n\r", Ain);
+		}
+		
+		if (ADCSRA & (1<<ADSC)) continue; // skip processing if not ready to do ADC -- now we don't need an interrupt
 
 		AinLow = (int)ADCL;
 		Ain = (int)ADCH*256; 
 		Ain = Ain + AinLow;
-
-		// program ONLY gets here after ADC ISR is done
-		fprintf(stdout, "%d\n\r", Ain);
+			
+		// start another conversion
+		ADCSRA |= (1<<ADSC);
 	}
 }
