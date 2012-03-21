@@ -8,11 +8,12 @@ ylim([0 1024]);
 
 KeepRunning = 1;
 while KeepRunning
-    s = serial(SerialPort)
+    s = serial(SerialPort);
+    set(s,'BaudRate',57600);
     fopen(s);
     for i = 1:N
         datum = fscanf(s, '%s');
-        fprintf('%s\n', datum);
+        %fprintf('%s\n', datum);
 
         if (length(datum) > 0)
             m(i) = str2num(datum);

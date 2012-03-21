@@ -13,7 +13,7 @@ FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 // timeout values for each task
 #define t1 100
-#define t2 10
+#define t2 5
 
 volatile unsigned char time1=0, time2=0; // timeout counter
 unsigned char led; // light states
@@ -37,7 +37,7 @@ ISR (TIMER0_COMPA_vect)
 	if (time2 > 0) --time2;
 }
 
-void pwm_init()
+/*void pwm_init()
 {
 	// Set timer/counter 1 to use 10-bit PWM mode.
 	// The counter counts from zero to 1023 and then back down
@@ -49,7 +49,7 @@ void pwm_init()
 	OCR1A = 512;
 	TCCR1A = (1 << COM1A1) | (1 << WGM11) | (1 << WGM10);
 	TCCR1B = (1 << CS12);
-}
+}*/
 
 int main()
 {
@@ -71,7 +71,7 @@ int main()
   	TCCR0A = 1 << WGM01; // turn on clear-on-match
   	 	
   	// set up timer for PWM
-  	pwm_init();
+  	//pwm_init();
 
   	led = 0x00; // init the LED status
 
