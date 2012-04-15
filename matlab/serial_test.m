@@ -1,4 +1,4 @@
-SerialPort='com7'; % serial port
+SerialPort='com8'; % serial port
 N=1000;
 
 m=zeros(1,1000);

@@ -1,5 +1,5 @@
 % settings
-SerialPort='com7'; % serial port
+SerialPort='com3'; % serial port
 N=200;
 Fs=200;
 

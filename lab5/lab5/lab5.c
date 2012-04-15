@@ -12,13 +12,23 @@
 FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 // timeout values for each task
-#define t1 100
+#define t1 200
 #define t2 5
 
 volatile unsigned char time1=0, time2=0; // timeout counter
 unsigned char led; // light states
 
 volatile int Ain, AinLow; // raw A to D number
+
+ISR (ADC_vect)
+{
+	//program ONLY gets here when ADC done flag is set
+   //when reading 10-bit values 
+   //you MUST read the low byte first 
+   AinLow = (int)ADCL;
+   Ain = (int)ADCH*256; 
+   Ain = Ain + AinLow;
+}
 
 // timer 0 compare ISR
 ISR (TIMER0_COMPA_vect)
@@ -37,29 +47,29 @@ ISR (TIMER0_COMPA_vect)
 	if (time2 > 0) --time2;
 }
 
-/*void pwm_init()
-{
-	// Set timer/counter 1 to use 10-bit PWM mode.
-	// The counter counts from zero to 1023 and then back down
-	// again. Each time the counter value equals the value
-	// of OCR1(A), the output pin is toggled.
-	// The counter speed is set in TCCR1B, to clk / 256 = 28800Hz.
-	// Effective frequency is then clk / 256 / 2046 = 14 Hz
-
-	OCR1A = 512;
-	TCCR1A = (1 << COM1A1) | (1 << WGM11) | (1 << WGM10);
-	TCCR1B = (1 << CS12);
-}*/
+//void pwm_init()
+//{
+//	// Set timer/counter 1 to use 10-bit PWM mode.
+//	// The counter counts from zero to 1023 and then back down
+//	// again. Each time the counter value equals the value
+//	// of OCR1(A), the output pin is toggled.
+//	// The counter speed is set in TCCR1B, to clk / 256 = 28800Hz.
+//	// Effective frequency is then clk / 256 / 2046 = 14 Hz
+//
+//	OCR1A = 512;
+//	TCCR1A = (1 << COM1A1) | (1 << WGM11) | (1 << WGM10);
+//	TCCR1B = (1 << CS12);
+//}
 
 int main()
 {
 	// init the A to D converter 
 	//channel zero/ right adj /ext Aref
 	//!!!DO NOT CONNECT Aref jumper!!!!
-	ADMUX = (1<<REFS0); 
+	ADMUX = (1<<REFS1);  // 1.1 V ref
 	//enable ADC and set prescaler to 1/127*16MHz=125,000
 	//and set int enable
-	ADCSRA = (1<<ADEN) + 7 ; 
+	ADCSRA = (1<<ADEN) | (1<<ADIE) + 7 ; 
 
 	// set up the LED port
   	DDRD = (1 << PORTD2) | (1 << PORTD3); // PORT D.2 is an ouput
@@ -69,6 +79,9 @@ int main()
   	OCR0A = 249; // set the compare register to 250 time ticks
   	TCCR0B = 3; // set prescalar to divide by 64
   	TCCR0A = 1 << WGM01; // turn on clear-on-match
+	  
+   SMCR = (1<<SM0) ; // sleep -- choose ADC mode 
+
   	 	
   	// set up timer for PWM
   	//pwm_init();
@@ -83,12 +96,23 @@ int main()
 	stdout = stdin = stderr = &uart_str;
 	fprintf(stdout,"\n\rStarting ADC ISR demo...\n\r"); 
 
+	// Need the next two statments so that the USART finishes
+	// BEFORE the cpu goes to sleep.
+	while (!(UCSR0A & (1<<UDRE0))) ; 
+	_delay_ms(1);
+
+	sleep_enable();                             
 	sei();
 
 	// measure and display loop
 	while (1)
 	{
-		if (time2 == 0)
+	    sleep_cpu();
+		fprintf(stdout, "%d\n\r", Ain);
+		while (!(UCSR0A & (1<<UDRE0))) ;
+		_delay_ms(1);
+
+		/*if (time2 == 0)
 		{
 			time2 = t2;	
 			fprintf(stdout, "%d\n\r", Ain);
@@ -101,6 +125,6 @@ int main()
 		Ain = Ain + AinLow;
 			
 		// start another conversion
-		ADCSRA |= (1<<ADSC);
+		ADCSRA |= (1<<ADSC); */
 	}
 }
