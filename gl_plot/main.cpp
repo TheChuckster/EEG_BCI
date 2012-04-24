@@ -20,7 +20,7 @@ unsigned int point_buffer[X_SIZE], running_buffer[X_SIZE], xline=0;
 FILE* logFile = NULL;
 
 // FFT stuff
-fftw_real in[X_SIZE], out[X_SIZE], power_spectrum[X_SIZE/2+1];
+fftw_real in[FFT_SIZE], out[FFT_SIZE], power_spectrum[FFT_SIZE/2+1];
 rfftw_plan p;
 
 void Quit(int returnCode)
@@ -114,27 +114,26 @@ int drawGLScene(void)
     xline++;
     xline %= X_SIZE;
 
-        for (int i=0; i<X_SIZE; i++)
+        for (int i=0; i<FFT_SIZE; i++)
         {
-            in[i] = running_buffer[i] - ADC_RESOLUTION/2;
+            in[i] = running_buffer[(X_SIZE-FFT_SIZE)+i] - ADC_RESOLUTION/2;
         }
 
         rfftw_one(p, in, out);
         power_spectrum[0] = out[0]*out[0];  /* DC component */
-        for (int i=1; i < (X_SIZE+1)/2; i++)  /* (k < N/2 rounded up) */
+        for (int i=1; i < (FFT_SIZE+1)/2; i++)  /* (k < N/2 rounded up) */
         {
-            power_spectrum[i] = out[i]*out[i] + out[X_SIZE-i]*out[X_SIZE-i];
-            //printf("i=%d power_spectrum[i]=%f\n", i, power_spectrum[i]);
+            power_spectrum[i] = out[i]*out[i] + out[FFT_SIZE-i]*out[FFT_SIZE-i];
         }
 
-        if (X_SIZE % 2 == 0) /* N is even */
+        if (FFT_SIZE % 2 == 0) /* N is even */
         {
-            power_spectrum[X_SIZE/2] = out[X_SIZE/2]*out[X_SIZE/2];  /* Nyquist freq. */
+            power_spectrum[FFT_SIZE/2] = out[FFT_SIZE/2]*out[FFT_SIZE/2];  /* Nyquist freq. */
         }
 
     // draw FFT
     glBegin(GL_LINES);
-        for (int i=0; i<=X_SIZE/2; i++)
+        for (int i=0; i<=FFT_SIZE/2; i++)
         {
             glColor4f(0,1,0,1);
             glVertex2i(i*2, 0);
@@ -164,7 +163,7 @@ int drawGLScene(void)
 
     float delta=0, theta=0, alpha=0, beta=0, gamma=0, mu=0, total=0;
 
-    for (int i=0; i<(X_SIZE/2); i++) total += power_spectrum[i];
+    for (int i=0; i<(FFT_SIZE/2); i++) total += power_spectrum[i];
     for (int i=0; i<4; i++) delta += power_spectrum[i];
     for (int i=4; i<=8; i++) theta += power_spectrum[i];
     for (int i=8; i<=13; i++) alpha += power_spectrum[i];
@@ -174,8 +173,8 @@ int drawGLScene(void)
     delta /= total; theta /= total; alpha /= total; beta /= total; gamma /= total; mu /= total;
 
     // do BCI paddle control
-    const float THETA_MIN=0.01f, THETA_MAX=0.04f;
-    posy = (SCREEN_HEIGHT - 64) * (theta - THETA_MIN) / (THETA_MAX - THETA_MIN);
+    const float ALPHA_MIN=0.01f, ALPHA_MAX=0.04f;
+    posy = (SCREEN_HEIGHT - 64) * (alpha - ALPHA_MIN) / (ALPHA_MAX - ALPHA_MIN);
     // TODO: low-pass filter
 
 /*    // 0.03 BELOW THAT MOVE PADDLE DOWN, OTHERWISE MOVE UP
@@ -295,7 +294,7 @@ int main(int argc, char **argv)
 
     // init FFT
     printf("Initializing FFTW 2...\n");
-    p = rfftw_create_plan(X_SIZE, FFTW_REAL_TO_COMPLEX, FFTW_ESTIMATE);
+    p = rfftw_create_plan(FFT_SIZE, FFTW_REAL_TO_COMPLEX, FFTW_ESTIMATE);
     printf("Done!\n");
 
     // init pong

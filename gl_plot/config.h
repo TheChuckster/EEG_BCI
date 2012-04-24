@@ -8,6 +8,7 @@
 #define ADC_RESOLUTION 1024
 #define FFT_SCALE_FACTOR (1024*1024*10)
 #define X_SIZE 1024
+#define FFT_SIZE 1024
 
 #define TRUE  1
 #define FALSE 0
